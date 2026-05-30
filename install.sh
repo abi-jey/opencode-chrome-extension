@@ -5,8 +5,8 @@ BIN_DIR="${HOME}/.local/bin"
 CHROME_DIR="${HOME}/.config/google-chrome/NativeMessagingHosts"
 CHROMIUM_DIR="${HOME}/.config/chromium/NativeMessagingHosts"
 
-HOST_NAME="com.github.abijey.browser-companion"
-BIN_PATH="${BIN_DIR}/browser-companion-host"
+HOST_NAME="com.github.abijey.browser_companion"
+BIN_PATH="${BIN_DIR}/browser_companion_host"
 MANIFEST_PATH="${CHROME_DIR}/${HOST_NAME}.json"
 VERSION="0.2.0"
 GIT_HASH="295217e"
@@ -18,8 +18,8 @@ echo
 mkdir -p "${BIN_DIR}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if [ -f "${SCRIPT_DIR}/bin/browser-companion-host" ]; then
-  cp "${SCRIPT_DIR}/bin/browser-companion-host" "${BIN_PATH}"
+if [ -f "${SCRIPT_DIR}/bin/browser_companion_host" ]; then
+  cp "${SCRIPT_DIR}/bin/browser_companion_host" "${BIN_PATH}"
   chmod +x "${BIN_PATH}"
   echo "[OK] Installed binary: ${BIN_PATH}"
 elif [ -f "${SCRIPT_DIR}/bin/opencode-native-host" ]; then

@@ -31,6 +31,10 @@ fetch(chrome.runtime.getURL("build-info.json"))
 
 checkStatus()
 
+chrome.runtime.sendMessage({ type: "get_logs" }, (resp) => {
+  if (resp?.logs) for (const l of resp.logs) append(l.level, l.component, l.message, l.detail)
+})
+
 // Timeout: if SW doesn't respond in 2s, show error
 setTimeout(() => {
   if (dot.className === "dot") {

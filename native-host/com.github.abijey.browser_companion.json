@@ -1,7 +1,7 @@
 {
-  "name": "com.github.abijey.browser-companion",
+  "name": "com.github.abijey.browser_companion",
   "description": "Browser companion native messaging host for MCP-compatible AI tools",
-  "path": "/usr/local/bin/browser-companion-host",
+  "path": "/usr/local/bin/browser_companion_host",
   "type": "stdio",
   "allowed_origins": ["chrome-extension://REPLACE_WITH_EXTENSION_ID/"]
 }

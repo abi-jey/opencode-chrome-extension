@@ -1,4 +1,4 @@
-const NATIVE_HOST = "com.github.abijey.browser-companion"
+const NATIVE_HOST = "com.github.abijey.browser_companion"
 
 interface BridgeMessage {
   id: string
@@ -23,6 +23,8 @@ type LogEntry = {
 
 let nativePort: chrome.runtime.Port | null = null
 let lastError = ""
+const logBuffer: LogEntry[] = []
+const MAX_BUFFER = 100
 
 function log(level: LogEntry["level"], component: string, message: string, detail?: unknown) {
   const entry: LogEntry = {
@@ -34,6 +36,8 @@ function log(level: LogEntry["level"], component: string, message: string, detai
     time: Date.now(),
   }
   console.log(`[${level}] [${component}] ${message}`, detail ?? "")
+  logBuffer.push(entry)
+  if (logBuffer.length > MAX_BUFFER) logBuffer.shift()
   broadcast(entry)
 }
 
@@ -96,6 +100,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "get_status") {
       if (nativePort) return { connected: true }
       return { connected: false, error: lastError }
+    }
+    if (msg.type === "get_logs") {
+      return { logs: logBuffer.slice() }
     }
     if (msg.type === "force_reconnect") {
       lastError = ""
@@ -192,9 +199,7 @@ chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL("tab/tab.html") })
 })
 
-// Startup
-log("info", "sw", "service worker starting")
-connectNative()
-log("info", "sw", "service worker ready")
+// Don't auto-connect on startup — let the debug page trigger it
+log("info", "sw", "service worker ready, waiting for connect signal")
 
 export {}
