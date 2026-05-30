@@ -27,6 +27,7 @@ Bun.serve({
   port: PORT,
   hostname: "127.0.0.1",
   idleTimeout: 0,
+  reusePort: true,
   async fetch(req) {
     const url = new URL(req.url)
     log(`[host] ${req.method} ${url.pathname}`)
@@ -37,7 +38,11 @@ Bun.serve({
 
 always(`[host] listening on :${PORT}`)
 
-process.on("SIGTERM", () => { bridge.destroy(); process.exit(0) })
-process.on("SIGINT", () => { bridge.destroy(); process.exit(0) })
+process.on("SIGTERM", () => process.exit(0))
+process.on("SIGINT", () => process.exit(0))
+process.on("uncaughtException", (err: Error) => {
+  always(`[host] fatal: ${err.message}`)
+  process.exit(0)
+})
 process.stdin.on("end", () => { always("[host] stdin ended"); process.exit(0) })
 process.stdin.on("close", () => { always("[host] stdin closed"); process.exit(0) })

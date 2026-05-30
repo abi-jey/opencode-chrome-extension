@@ -73,6 +73,7 @@ function connectNative(): chrome.runtime.Port | null {
     log("error", "sw", `native disconnected: ${lastError}`)
     nativePort = null
     broadcast({ type: "disconnected", error: lastError })
+    setTimeout(() => connectWithRetry(2000), 2000)
   })
   log("info", "sw", "connected to native host")
   broadcast({ type: "connected" })
@@ -176,4 +177,16 @@ chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL("tab/tab.html") })
 })
 
-log("info", "sw", `ready v0.2.0, host=${NATIVE_HOST}, waiting for connect`)
+log("info", "sw", `ready v0.2.0, host=${NATIVE_HOST}`)
+
+// Auto-connect and keep alive
+connectWithRetry()
+
+function connectWithRetry(delay = 1000) {
+  const maxDelay = 30000
+  const port = connectNative()
+  if (!port) {
+    log("warn", "sw", `connect failed, retry in ${delay}ms`)
+    setTimeout(() => connectWithRetry(Math.min(delay * 2, maxDelay)), delay)
+  }
+}
