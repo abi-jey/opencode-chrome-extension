@@ -87,26 +87,57 @@ function connectNative(): chrome.runtime.Port | null {
 function sendToNative(msg: unknown) {
   const preview = JSON.stringify(msg).slice(0, 200)
   log("debug", "sw", `sending to native: ${preview}`)
-  const port = connectNative()
-  if (!port) {
-    log("error", "sw", "cannot send, native port is null")
-    return
+  if (!nativePort) {
+    log("error", "sw", "cannot send, native port is null (trying reconnect)")
+    nativePort = null
+    lastError = ""
+    const port = chrome.runtime.connectNative(NATIVE_HOST)
+    if (chrome.runtime.lastError) {
+      log("error", "sw", `reconnect failed: ${chrome.runtime.lastError.message}`)
+      return
+    }
+    nativePort = port
+    nativePort.onMessage.addListener((m) => {
+      if (m && typeof m === "object" && "id" in m && "tool" in m) {
+        handleBridgeMessage(m as BridgeMessage)
+      }
+    })
+    nativePort.onDisconnect.addListener(() => {
+      lastError = chrome.runtime.lastError?.message ?? "Unknown disconnect"
+      log("error", "sw", `native disconnected: ${lastError}`)
+      nativePort = null
+      broadcast({ type: "disconnected", error: lastError })
+    })
   }
-  port.postMessage(msg)
+  nativePort.postMessage(msg)
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && typeof msg === "object") {
     if (msg.type === "get_status") {
-      if (nativePort) return { connected: true }
-      return { connected: false, error: lastError }
+      sendResponse(nativePort ? { connected: true } : { connected: false, error: lastError })
+      return true
     }
+    if (msg.type === "force_reconnect") {
+      lastError = ""
+      if (nativePort) {
+        nativePort.disconnect()
+        nativePort = null
+      }
+      const port = connectNative()
+      sendResponse({ ok: port != null })
+      return true
+    }
+  }
     if (msg.type === "get_logs") {
       return { logs: logBuffer.slice() }
     }
     if (msg.type === "force_reconnect") {
       lastError = ""
-      nativePort = null
+      if (nativePort) {
+        nativePort.disconnect()
+        nativePort = null
+      }
       const port = connectNative()
       return { ok: port != null }
     }
@@ -199,8 +230,7 @@ chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL("tab/tab.html") })
 })
 
-// Auto-connect on startup
-log("info", "sw", `starting v0.2.0 (fe44623), host=${NATIVE_HOST}`)
-connectNative()
+log("info", "sw", `starting v0.2.0 (2cd5380), host=${NATIVE_HOST}, waiting for force_reconnect`)
+// connectNative() is called by force_reconnect handler when user clicks the button
 
 export {}

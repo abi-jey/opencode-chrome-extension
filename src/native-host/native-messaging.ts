@@ -7,6 +7,8 @@ export function onMessage(cb: (msg: unknown) => void): void {
   let expecting = HEADER_SIZE
   let msgLength = 0
 
+  Bun.write("/tmp/browser-companion.log", `[${new Date().toISOString()}] [native-msg] listener attached, stdin ready\n`).catch(() => {})
+
   process.stdin.on("data", (chunk: Buffer) => {
     buffer = Buffer.concat([buffer, chunk])
 

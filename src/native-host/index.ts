@@ -4,6 +4,7 @@ import { createMcpServer } from "./mcp-server.js"
 
 const PORT = 19877
 const VERBOSE = process.env.LOG_LEVEL === "debug"
+const LOG_FILE = "/tmp/browser-companion.log"
 
 function log(msg: string) {
   if (!VERBOSE) return
@@ -11,9 +12,11 @@ function log(msg: string) {
 }
 function always(msg: string) {
   console.error(msg)
+  Bun.write(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`)
+    .catch(() => {})
 }
 
-always(`[host] starting, pid=${process.pid} verbose=${VERBOSE}`)
+always(`[host] starting, pid=${process.pid} verbose=${VERBOSE} cwd=${process.cwd()}`)
 
 const bridge = new Bridge()
 
@@ -45,7 +48,7 @@ Bun.serve({
     }
     return new Response("browser_companion_host", { status: 200 })
   },
-} as any)
+})
 
 always(`[host] MCP server on http://127.0.0.1:${PORT}/mcp`)
 
