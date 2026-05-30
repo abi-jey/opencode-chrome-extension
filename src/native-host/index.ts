@@ -8,7 +8,7 @@ const VERBOSE = process.env.LOG_LEVEL === "debug"
 function log(msg: string) { if (VERBOSE) console.error(msg) }
 function always(msg: string) { console.error(msg) }
 
-always(`[host] starting, pid=${process.pid} verbose=${VERBOSE}`)
+always(`[host] starting pid=${process.pid}`)
 
 const bridge = new Bridge()
 bridge.setSend(sendMessage)
@@ -17,11 +17,11 @@ onMessage((msg) => {
   if (msg && typeof msg === "object" && "id" in msg) {
     bridge.handleResponse(msg as { id: string; result?: unknown; error?: string })
   } else {
-    log(`[host] unknown message: ${JSON.stringify(msg).slice(0, 200)}`)
+    log(`[host] unknown msg: ${JSON.stringify(msg).slice(0, 200)}`)
   }
 })
 
-const { handleRequest } = createMcpServer(bridge)
+const transport = createMcpServer(bridge)
 
 Bun.serve({
   port: PORT,
@@ -29,28 +29,15 @@ Bun.serve({
   idleTimeout: 0,
   async fetch(req) {
     const url = new URL(req.url)
-    log(`[host] HTTP ${req.method} ${url.pathname}`)
-    if (url.pathname.startsWith("/mcp")) {
-      return handleRequest(req)
-    }
-    return new Response("browser_companion_host", { status: 200 })
+    log(`[host] ${req.method} ${url.pathname}`)
+    if (url.pathname.startsWith("/mcp")) return transport.handleRequest(req)
+    return new Response("ok", { status: 200 })
   },
 })
 
-always(`[host] MCP server on http://127.0.0.1:${PORT}/mcp`)
+always(`[host] listening on :${PORT}`)
 
-process.on("SIGTERM", shutdown)
-process.on("SIGINT", shutdown)
-process.on("uncaughtException", (err) => {
-  always(`[host] uncaught exception: ${err}`)
-  shutdown()
-})
-
-process.stdin.on("end", () => { always("[host] stdin ended"); shutdown() })
-process.stdin.on("close", () => { always("[host] stdin closed"); shutdown() })
-
-function shutdown() {
-  always("[host] shutdown")
-  bridge.destroy()
-  process.exit(0)
-}
+process.on("SIGTERM", () => { bridge.destroy(); process.exit(0) })
+process.on("SIGINT", () => { bridge.destroy(); process.exit(0) })
+process.stdin.on("end", () => { always("[host] stdin ended"); process.exit(0) })
+process.stdin.on("close", () => { always("[host] stdin closed"); process.exit(0) })
