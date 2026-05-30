@@ -4,6 +4,9 @@
     "browser": {
       "type": "remote",
       "url": "http://localhost:19877/mcp"
+    },
+    "playwright": {
+      "enabled": false
     }
   }
 }

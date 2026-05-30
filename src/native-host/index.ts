@@ -4,22 +4,13 @@ import { createMcpServer } from "./mcp-server.js"
 
 const PORT = 19877
 const VERBOSE = process.env.LOG_LEVEL === "debug"
-const LOG_FILE = "/tmp/browser-companion.log"
 
-function log(msg: string) {
-  if (!VERBOSE) return
-  console.error(msg)
-}
-function always(msg: string) {
-  console.error(msg)
-  Bun.write(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`)
-    .catch(() => {})
-}
+function log(msg: string) { if (VERBOSE) console.error(msg) }
+function always(msg: string) { console.error(msg) }
 
-always(`[host] starting, pid=${process.pid} verbose=${VERBOSE} cwd=${process.cwd()}`)
+always(`[host] starting, pid=${process.pid} verbose=${VERBOSE}`)
 
 const bridge = new Bridge()
-
 bridge.setSend(sendMessage)
 
 onMessage((msg) => {
@@ -30,11 +21,7 @@ onMessage((msg) => {
   }
 })
 
-const { server, transport } = createMcpServer(bridge)
-
-server.connect(transport).catch((err) => {
-  always(`[host] MCP server connect error: ${err}`)
-})
+const { handleRequest } = createMcpServer(bridge)
 
 Bun.serve({
   port: PORT,
@@ -44,7 +31,7 @@ Bun.serve({
     const url = new URL(req.url)
     log(`[host] HTTP ${req.method} ${url.pathname}`)
     if (url.pathname.startsWith("/mcp")) {
-      return transport.handleRequest(req)
+      return handleRequest(req)
     }
     return new Response("browser_companion_host", { status: 200 })
   },
@@ -59,14 +46,8 @@ process.on("uncaughtException", (err) => {
   shutdown()
 })
 
-process.stdin.on("end", () => {
-  always("[host] stdin ended, shutting down")
-  shutdown()
-})
-process.stdin.on("close", () => {
-  always("[host] stdin closed, shutting down")
-  shutdown()
-})
+process.stdin.on("end", () => { always("[host] stdin ended"); shutdown() })
+process.stdin.on("close", () => { always("[host] stdin closed"); shutdown() })
 
 function shutdown() {
   always("[host] shutdown")
