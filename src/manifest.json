@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "OpenCode Companion",
+  "version": "0.1.0",
+  "description": "Communicates with the OpenCode desktop application via native messaging.",
+  "permissions": ["nativeMessaging", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open OpenCode Tab"
+  }
+}

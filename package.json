@@ -1,0 +1,16 @@
+{
+  "name": "opencode-chrome-extension",
+  "description": "Chrome extension companion for opencode desktop app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run build.ts",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/bun": "latest",
+    "typescript": "^5.8.2"
+  }
+}
