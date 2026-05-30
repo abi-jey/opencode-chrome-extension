@@ -49,16 +49,26 @@ INSTALLED=0
 for dir in "${BROWSER_DIRS[@]}"; do
   if [ -d "$(dirname "${dir}")" ]; then
     mkdir -p "${dir}"
+    # Snap Chromium can only access files under ~/snap/chromium/
+    if [[ "${dir}" == *"/snap/chromium/"* ]]; then
+      SNAP_BIN="${HOME}/snap/chromium/common/browser_companion_host"
+      mkdir -p "$(dirname "${SNAP_BIN}")"
+      cp "${BIN_PATH}" "${SNAP_BIN}" 2>/dev/null || true
+      chmod +x "${SNAP_BIN}" 2>/dev/null || true
+      HOST_PATH="${SNAP_BIN}"
+    else
+      HOST_PATH="${BIN_PATH}"
+    fi
     cat > "${dir}/${HOST_NAME}.json" <<JSON
 {
   "name": "${HOST_NAME}",
   "description": "Browser companion native messaging host for MCP-compatible AI tools",
-  "path": "${BIN_PATH}",
+  "path": "${HOST_PATH}",
   "type": "stdio",
   "allowed_origins": ["chrome-extension://${EXT_ID}/"]
 }
 JSON
-    echo "[OK] ${dir}/${HOST_NAME}.json"
+    echo "[OK] ${dir}/${HOST_NAME}.json -> ${HOST_PATH}"
     INSTALLED=$((INSTALLED + 1))
   fi
 done
