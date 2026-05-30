@@ -46,18 +46,14 @@ function broadcast(msg: unknown) {
 }
 
 function connectNative(): chrome.runtime.Port | null {
-  if (nativePort) {
-    log("debug", "sw", "already connected, skipping")
-    return nativePort
-  }
+  if (nativePort) return nativePort
   log("info", "sw", `connecting to: ${NATIVE_HOST}`)
   try {
     nativePort = chrome.runtime.connectNative(NATIVE_HOST)
   } catch (err) {
-    const msg = String(err)
-    lastError = msg
-    log("error", "sw", `connectNative threw: ${msg}`)
-    broadcast({ type: "disconnected", error: msg })
+    lastError = String(err)
+    log("error", "sw", `connectNative threw: ${lastError}`)
+    broadcast({ type: "disconnected", error: lastError })
     return null
   }
   if (chrome.runtime.lastError) {
@@ -67,14 +63,13 @@ function connectNative(): chrome.runtime.Port | null {
     broadcast({ type: "disconnected", error: lastError })
     return null
   }
-  nativePort.onMessage.addListener((msg) => {
-    log("debug", "sw", `msg from native: ${JSON.stringify(msg).slice(0, 200)}`)
-    if (msg && typeof msg === "object" && "id" in msg && "tool" in msg) {
-      handleBridgeMessage(msg as BridgeMessage)
+  nativePort.onMessage.addListener((raw) => {
+    if (raw && typeof raw === "object" && "id" in raw && "tool" in raw) {
+      handleBridgeMessage(raw as BridgeMessage)
     }
   })
   nativePort.onDisconnect.addListener(() => {
-    lastError = chrome.runtime.lastError?.message ?? "Unknown disconnect"
+    lastError = chrome.runtime.lastError?.message ?? "disconnected"
     log("error", "sw", `native disconnected: ${lastError}`)
     nativePort = null
     broadcast({ type: "disconnected", error: lastError })
@@ -85,11 +80,9 @@ function connectNative(): chrome.runtime.Port | null {
 }
 
 function sendToNative(msg: unknown) {
-  const preview = JSON.stringify(msg).slice(0, 200)
-  log("debug", "sw", `sending to native: ${preview}`)
+  log("debug", "sw", `sending: ${JSON.stringify(msg).slice(0, 200)}`)
   if (!nativePort) {
-    log("error", "sw", "cannot send, native port is null (trying reconnect)")
-    nativePort = null
+    log("error", "sw", "port null, reconnecting")
     lastError = ""
     const port = chrome.runtime.connectNative(NATIVE_HOST)
     if (chrome.runtime.lastError) {
@@ -97,13 +90,13 @@ function sendToNative(msg: unknown) {
       return
     }
     nativePort = port
-    nativePort.onMessage.addListener((m) => {
-      if (m && typeof m === "object" && "id" in m && "tool" in m) {
-        handleBridgeMessage(m as BridgeMessage)
+    nativePort.onMessage.addListener((raw) => {
+      if (raw && typeof raw === "object" && "id" in raw && "tool" in raw) {
+        handleBridgeMessage(raw as BridgeMessage)
       }
     })
     nativePort.onDisconnect.addListener(() => {
-      lastError = chrome.runtime.lastError?.message ?? "Unknown disconnect"
+      lastError = chrome.runtime.lastError?.message ?? "disconnected"
       log("error", "sw", `native disconnected: ${lastError}`)
       nativePort = null
       broadcast({ type: "disconnected", error: lastError })
@@ -112,47 +105,63 @@ function sendToNative(msg: unknown) {
   nativePort.postMessage(msg)
 }
 
+function handleBridgeMessage(msg: BridgeMessage) {
+  log("tool_in", "sw", `${msg.tool} id=${msg.id}`)
+  switch (msg.tool) {
+    case "list_tabs":
+      chrome.tabs.query({}, (tabs) => {
+        if (chrome.runtime.lastError) {
+          sendToNative({ id: msg.id, error: chrome.runtime.lastError.message ?? "" })
+          return
+        }
+        const result = tabs.map((t) => ({ id: t.id, url: t.url, title: t.title, active: t.active, windowId: t.windowId }))
+        log("tool_out", "sw", `list_tabs count=${result.length}`)
+        sendToNative({ id: msg.id, result })
+      })
+      break
+    case "take_screenshot": {
+      const windowId = msg.args.tabId != null ? Number(msg.args.tabId) : undefined
+      const cb = (dataUrl: string) => {
+        if (chrome.runtime.lastError) { sendToNative({ id: msg.id, error: chrome.runtime.lastError.message ?? "" }); return }
+        sendToNative({ id: msg.id, result: { format: "png", data: dataUrl.replace(/^data:image\/png;base64,/, "") } })
+      }
+      if (windowId != null) chrome.tabs.captureVisibleTab(windowId, { format: "png" }, cb)
+      else chrome.tabs.captureVisibleTab({ format: "png" }, cb)
+      break
+    }
+    case "navigate":
+      chrome.tabs.update(Number(msg.args.tabId), { url: String(msg.args.url) }, (tab) => {
+        if (chrome.runtime.lastError) { sendToNative({ id: msg.id, error: chrome.runtime.lastError.message ?? "" }); return }
+        sendToNative({ id: msg.id, result: { id: tab?.id, url: tab?.url, title: tab?.title } })
+      })
+      break
+    case "read_page_html":
+    case "execute_js":
+      chrome.tabs.sendMessage(Number(msg.args.tabId), msg, (response: BridgeResponse | undefined) => {
+        if (chrome.runtime.lastError) { sendToNative({ id: msg.id, error: chrome.runtime.lastError.message ?? "" }); return }
+        sendToNative(response ?? { id: msg.id, error: "No response from content script" })
+      })
+      break
+    default:
+      sendToNative({ id: msg.id, error: `Unknown tool: ${msg.tool}` })
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg && typeof msg === "object") {
-    if (msg.type === "get_status") {
-      sendResponse(nativePort ? { connected: true } : { connected: false, error: lastError })
-      return true
-    }
-    if (msg.type === "force_reconnect") {
-      lastError = ""
-      if (nativePort) {
-        nativePort.disconnect()
-        nativePort = null
-      }
-      const port = connectNative()
-      sendResponse({ ok: port != null })
-      return true
-    }
+  if (!msg || typeof msg !== "object") return
+  if (msg.type === "get_status") {
+    sendResponse(nativePort ? { connected: true } : { connected: false, error: lastError })
+    return true
   }
-    if (msg.type === "get_logs") {
-      return { logs: logBuffer.slice() }
-    }
-    if (msg.type === "force_reconnect") {
-      lastError = ""
-      if (nativePort) {
-        nativePort.disconnect()
-        nativePort = null
-      }
-      const port = connectNative()
-      return { ok: port != null }
-    }
+  if (msg.type === "get_logs") {
+    sendResponse({ logs: logBuffer.slice() })
+    return true
   }
-  if (sender.tab && msg && typeof msg === "object" && "test" in msg) {
+  if (msg.type === "force_reconnect") {
+    lastError = ""
+    if (nativePort) { nativePort.disconnect(); nativePort = null }
     const port = connectNative()
-    if (!port) {
-      sendResponse({ error: "Native host not connected" })
-      return true
-    }
-    port.postMessage(msg)
-    port.onMessage.addListener(function handler(response: unknown) {
-      sendResponse(response)
-      port.onMessage.removeListener(handler)
-    })
+    sendResponse({ ok: port != null })
     return true
   }
 })
@@ -163,74 +172,8 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 })
 
-function handleBridgeMessage(msg: BridgeMessage) {
-  log("tool_in", "sw", `tool=${msg.tool} id=${msg.id}`)
-  switch (msg.tool) {
-    case "list_tabs":
-      chrome.tabs.query({}, (tabs) => {
-        if (chrome.runtime.lastError) {
-          const err = chrome.runtime.lastError.message ?? ""
-          log("error", "sw", `list_tabs failed: ${err}`)
-          sendToNative({ id: msg.id, error: err })
-          return
-        }
-        const result = tabs.map((t) => ({ id: t.id, url: t.url, title: t.title, active: t.active, windowId: t.windowId }))
-        log("tool_out", "sw", `list_tabs count=${result.length}`)
-        sendToNative({ id: msg.id, result })
-      })
-      break
-
-    case "take_screenshot": {
-      const windowId = msg.args.tabId != null ? Number(msg.args.tabId) : undefined
-      log("info", "sw", `screenshot windowId=${windowId ?? "current"}`)
-      const cb = (dataUrl: string) => {
-        if (chrome.runtime.lastError) {
-          sendToNative({ id: msg.id, error: chrome.runtime.lastError.message ?? "" })
-          return
-        }
-        const base64 = dataUrl.replace(/^data:image\/png;base64,/, "")
-        log("tool_out", "sw", `screenshot size=${base64.length}`)
-        sendToNative({ id: msg.id, result: { format: "png", data: base64 } })
-      }
-      if (windowId != null) chrome.tabs.captureVisibleTab(windowId, { format: "png" }, cb)
-      else chrome.tabs.captureVisibleTab({ format: "png" }, cb)
-      break
-    }
-
-    case "navigate":
-      log("info", "sw", `navigate tabId=${msg.args.tabId} url=${msg.args.url}`)
-      chrome.tabs.update(Number(msg.args.tabId), { url: String(msg.args.url) }, (tab) => {
-        if (chrome.runtime.lastError) {
-          sendToNative({ id: msg.id, error: chrome.runtime.lastError.message ?? "" })
-          return
-        }
-        sendToNative({ id: msg.id, result: { id: tab?.id, url: tab?.url, title: tab?.title } })
-      })
-      break
-
-    case "read_page_html":
-    case "execute_js":
-      log("info", "sw", `${msg.tool} tabId=${msg.args.tabId}`)
-      chrome.tabs.sendMessage(Number(msg.args.tabId), msg, (response: BridgeResponse | undefined) => {
-        if (chrome.runtime.lastError) {
-          sendToNative({ id: msg.id, error: chrome.runtime.lastError.message ?? "" })
-          return
-        }
-        sendToNative(response ?? { id: msg.id, error: "No response from content script" })
-      })
-      break
-
-    default:
-      log("warn", "sw", `unknown tool: ${msg.tool}`)
-      sendToNative({ id: msg.id, error: `Unknown tool: ${msg.tool}` })
-  }
-}
-
 chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL("tab/tab.html") })
 })
 
-log("info", "sw", `starting v0.2.0 (2cd5380), host=${NATIVE_HOST}, waiting for force_reconnect`)
-// connectNative() is called by force_reconnect handler when user clicks the button
-
-export {}
+log("info", "sw", `ready v0.2.0, host=${NATIVE_HOST}, waiting for connect`)
