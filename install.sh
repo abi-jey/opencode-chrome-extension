@@ -2,48 +2,54 @@
 set -euo pipefail
 
 BIN_DIR="${HOME}/.local/bin"
-CHROME_DIR="${HOME}/.config/google-chrome/NativeMessagingHosts"
-CHROMIUM_DIR="${HOME}/.config/chromium/NativeMessagingHosts"
-SNAP_CHROMIUM_DIR="${HOME}/snap/chromium/common/chromium/NativeMessagingHosts"
-
 HOST_NAME="com.github.abijey.browser_companion"
 BIN_PATH="${BIN_DIR}/browser_companion_host"
-MANIFEST_PATH="${CHROME_DIR}/${HOST_NAME}.json"
 VERSION="0.2.0"
-GIT_HASH="295217e"
+HASH="$(git -C "$(dirname "$0")" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
 
-echo "=== Browser Companion Installer ==="
-echo "    v${VERSION} (${GIT_HASH})"
+echo "=== Browser Companion Installer v${VERSION} (${HASH}) ==="
 echo
 
+# --- Install binary ---
 mkdir -p "${BIN_DIR}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if [ -f "${SCRIPT_DIR}/bin/browser_companion_host" ]; then
-  cp "${SCRIPT_DIR}/bin/browser_companion_host" "${BIN_PATH}"
-  chmod +x "${BIN_PATH}"
-  echo "[OK] Installed binary: ${BIN_PATH}"
-elif [ -f "${SCRIPT_DIR}/bin/opencode-native-host" ]; then
-  cp "${SCRIPT_DIR}/bin/opencode-native-host" "${BIN_PATH}"
-  chmod +x "${BIN_PATH}"
-  echo "[OK] Installed binary (legacy name): ${BIN_PATH}"
-else
-  echo "[SKIP] Binary not found. Build with: bun run build"
+for candidate in "${SCRIPT_DIR}/bin/browser_companion_host" "${SCRIPT_DIR}/browser_companion_host" "${SCRIPT_DIR}/bin/opencode-native-host"; do
+  if [ -f "${candidate}" ]; then
+    cp "${candidate}" "${BIN_PATH}"
+    chmod +x "${BIN_PATH}"
+    echo "[OK] Installed binary: ${BIN_PATH}"
+    break
+  fi
+done
+
+if [ ! -f "${BIN_PATH}" ]; then
+  echo "[SKIP] Binary not found. Run: bun run build"
+  echo
 fi
 
+# --- Register native host manifest ---
 EXT_ID="${1:-}"
 if [ -z "${EXT_ID}" ]; then
-  echo
-  echo "Usage: install.sh <chrome-extension-id>"
-  echo
-  echo "  1. Load the extension in Chrome (chrome://extensions -> Load unpacked -> select dist/)"
-  echo "  2. Copy the extension ID from the card"
-  echo "  3. Run: install.sh <extension-id>"
+  echo "Usage: install.sh <extension-id>"
+  echo "  Load extension in chromium://extensions, copy the ID from the card"
   exit 1
 fi
 
-mkdir -p "${CHROME_DIR}"
-cat > "${MANIFEST_PATH}" <<JSON
+BROWSER_DIRS=(
+  "${HOME}/.config/google-chrome/NativeMessagingHosts"
+  "${HOME}/.config/chromium/NativeMessagingHosts"
+  "${HOME}/.config/google-chrome-for-testing/NativeMessagingHosts"
+  "${HOME}/snap/chromium/common/chromium/NativeMessagingHosts"
+  "${HOME}/snap/chromium/current/.config/chromium/NativeMessagingHosts"
+  "${HOME}/.var/app/com.google.Chrome/config/google-chrome/NativeMessagingHosts"
+)
+
+INSTALLED=0
+for dir in "${BROWSER_DIRS[@]}"; do
+  if [ -d "$(dirname "${dir}")" ]; then
+    mkdir -p "${dir}"
+    cat > "${dir}/${HOST_NAME}.json" <<JSON
 {
   "name": "${HOST_NAME}",
   "description": "Browser companion native messaging host for MCP-compatible AI tools",
@@ -52,29 +58,18 @@ cat > "${MANIFEST_PATH}" <<JSON
   "allowed_origins": ["chrome-extension://${EXT_ID}/"]
 }
 JSON
-echo "[OK] Registered manifest: ${MANIFEST_PATH}"
+    echo "[OK] ${dir}/${HOST_NAME}.json"
+    INSTALLED=$((INSTALLED + 1))
+  fi
+done
 
-if [ -d "${HOME}/snap/chromium" ]; then
-  mkdir -p "${SNAP_CHROMIUM_DIR}"
-  cp "${MANIFEST_PATH}" "${SNAP_CHROMIUM_DIR}/"
-  echo "[OK] Registered Snap Chromium manifest: ${SNAP_CHROMIUM_DIR}/${HOST_NAME}.json"
+if [ $INSTALLED -eq 0 ]; then
+  echo "[WARN] No Chromium/Chrome config directories found. Is a browser installed?"
 fi
-
-# Remove old legacy manifest
-rm -f "${CHROME_DIR}/com.opencode.app.json" "${CHROMIUM_DIR}/com.opencode.app.json" 2>/dev/null || true
 
 echo
 echo "=== Done ==="
+echo "  Restart your browser for changes to take effect."
 echo
-echo "  1. Restart Chrome"
-echo "  2. Click the extension icon to connect"
-echo "  3. Add to your MCP-compatible tool config:"
-echo
-echo '     {'
-echo '       "mcp": {'
-echo '         "browser": {'
-echo '           "type": "remote",'
-echo '           "url": "http://localhost:19877/mcp"'
-echo '         }'
-echo '       }'
-echo '     }'
+echo "  MCP config for AI tools:"
+echo '    { "mcp": { "browser": { "type": "remote", "url": "http://localhost:19877/mcp" } } }'
