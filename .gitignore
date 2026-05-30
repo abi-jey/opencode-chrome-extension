@@ -2,3 +2,4 @@ node_modules
 dist
 bin
 *.bun-build
+.playwright-mcp
