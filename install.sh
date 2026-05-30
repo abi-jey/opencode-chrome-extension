@@ -16,13 +16,16 @@ echo
 mkdir -p "${BIN_DIR}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if [ -f "${SCRIPT_DIR}/opencode-native-host" ]; then
+if [ -f "${SCRIPT_DIR}/bin/opencode-native-host" ]; then
+  cp "${SCRIPT_DIR}/bin/opencode-native-host" "${BIN_PATH}"
+  chmod +x "${BIN_PATH}"
+  echo "[OK] Installed binary: ${BIN_PATH}"
+elif [ -f "${SCRIPT_DIR}/opencode-native-host" ]; then
   cp "${SCRIPT_DIR}/opencode-native-host" "${BIN_PATH}"
   chmod +x "${BIN_PATH}"
   echo "[OK] Installed binary: ${BIN_PATH}"
 else
-  echo "[SKIP] Binary not found at ${SCRIPT_DIR}/opencode-native-host"
-  echo "       Download it from the releases page or build with: bun run build"
+  echo "[SKIP] Binary not found. Build with: bun run build"
 fi
 
 # Register native host manifest
