@@ -36,7 +36,7 @@ server.connect(transport).catch((err) => {
 Bun.serve({
   port: PORT,
   hostname: "127.0.0.1",
-  idleTimeout: 0, // disable timeout for SSE streams
+  idleTimeout: 0,
   async fetch(req) {
     const url = new URL(req.url)
     log(`[host] HTTP ${req.method} ${url.pathname}`)

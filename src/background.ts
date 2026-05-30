@@ -200,6 +200,6 @@ chrome.action.onClicked.addListener(() => {
 })
 
 // Don't auto-connect on startup — let the debug page trigger it
-log("info", "sw", "service worker ready, waiting for connect signal")
+log("info", "sw", `service worker ready v0.2.0 (fe44623), host=${NATIVE_HOST}`)
 
 export {}
