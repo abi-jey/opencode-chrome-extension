@@ -8,8 +8,11 @@ CHROMIUM_DIR="${HOME}/.config/chromium/NativeMessagingHosts"
 HOST_NAME="com.github.abijey.browser-companion"
 BIN_PATH="${BIN_DIR}/browser-companion-host"
 MANIFEST_PATH="${CHROME_DIR}/${HOST_NAME}.json"
+VERSION="0.2.0"
+GIT_HASH="295217e"
 
 echo "=== Browser Companion Installer ==="
+echo "    v${VERSION} (${GIT_HASH})"
 echo
 
 mkdir -p "${BIN_DIR}"

@@ -51,6 +51,14 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 loadTabs()
 
+fetch(chrome.runtime.getURL("build-info.json"))
+  .then((r) => r.json())
+  .then((info) => {
+    const el = document.getElementById("version")
+    if (el) el.textContent = `v${info.version} · ${info.commit} · ${info.built.slice(0, 10)}`
+  })
+  .catch(() => {})
+
 function setStatus(connected: boolean, error?: string) {
   if (connected) {
     dot.className = "dot connected"

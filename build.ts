@@ -1,5 +1,15 @@
 import { $ } from "bun"
 
+// Build info
+const pkg = await Bun.file("package.json").json()
+const proc = Bun.spawnSync(["git", "rev-parse", "--short", "HEAD"])
+const hash = proc.stdout.toString().trim()
+const buildInfo = {
+  version: pkg.version,
+  commit: hash,
+  built: new Date().toISOString(),
+}
+
 // Build the Chrome extension (browser bundle)
 const extOutdir = "dist"
 const extResult = await Bun.build({
@@ -16,6 +26,7 @@ if (!extResult.success) {
 await Bun.write(`${extOutdir}/manifest.json`, Bun.file("src/manifest.json"))
 await Bun.write(`${extOutdir}/sidebar/sidebar.html`, Bun.file("src/sidebar/sidebar.html"))
 await Bun.write(`${extOutdir}/tab/tab.html`, Bun.file("src/tab/tab.html"))
+await Bun.write(`${extOutdir}/build-info.json`, JSON.stringify(buildInfo, null, 2))
 console.log("Extension built to", extOutdir)
 
 // Bundle the native host
