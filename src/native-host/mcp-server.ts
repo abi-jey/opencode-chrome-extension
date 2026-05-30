@@ -6,63 +6,42 @@ import type { Bridge } from "./bridge.js"
 const VERBOSE = process.env.LOG_LEVEL === "debug"
 const log = (msg: string) => { if (VERBOSE) console.error(msg) }
 
-export function createMcpServer(bridge: Bridge) {
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
-  })
-
+function createServer(bridge: Bridge) {
   const server = new McpServer({ name: "opencode-browser", version: "1.0.0" })
 
-  server.registerTool(
-    "browser_list_tabs",
-    { description: "List all open browser tabs with their IDs, URLs, and titles", inputSchema: {} },
-    async () => {
-      log("[mcp] list_tabs called")
-      const result = await bridge.call("list_tabs", {})
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] }
-    },
-  )
+  server.registerTool("browser_list_tabs", { description: "List open browser tabs", inputSchema: {} }, async () => {
+    log("[mcp] list_tabs")
+    const r = await bridge.call("list_tabs", {})
+    return { content: [{ type: "text" as const, text: JSON.stringify(r, null, 2) }] }
+  })
 
-  server.registerTool(
-    "browser_read_page_html",
-    { description: "Read the full HTML content of a browser tab", inputSchema: { tabId: z.number().describe("tab ID") } },
-    async (args) => {
-      const result = await bridge.call("read_page_html", { tabId: args.tabId })
-      return { content: [{ type: "text" as const, text: typeof result === "string" ? result : JSON.stringify(result) }] }
-    },
-  )
+  server.registerTool("browser_read_page_html", { description: "Read HTML of a tab", inputSchema: { tabId: z.number() } }, async (a) => {
+    const r = await bridge.call("read_page_html", { tabId: a.tabId })
+    return { content: [{ type: "text" as const, text: typeof r === "string" ? r : JSON.stringify(r) }] }
+  })
 
-  server.registerTool(
-    "browser_execute_js",
-    {
-      description: "Execute JavaScript code in a browser tab",
-      inputSchema: { tabId: z.number(), code: z.string() },
-    },
-    async (args) => {
-      const result = await bridge.call("execute_js", { tabId: args.tabId, code: args.code })
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] }
-    },
-  )
+  server.registerTool("browser_execute_js", { description: "Execute JS in a tab", inputSchema: { tabId: z.number(), code: z.string() } }, async (a) => {
+    const r = await bridge.call("execute_js", { tabId: a.tabId, code: a.code })
+    return { content: [{ type: "text" as const, text: JSON.stringify(r, null, 2) }] }
+  })
 
-  server.registerTool(
-    "browser_take_screenshot",
-    { description: "Screenshot a browser tab", inputSchema: { tabId: z.number().optional() } },
-    async (args) => {
-      const result = await bridge.call("take_screenshot", { tabId: args.tabId })
-      return { content: [{ type: "text" as const, text: String(result) }] }
-    },
-  )
+  server.registerTool("browser_take_screenshot", { description: "Screenshot a tab", inputSchema: { tabId: z.number().optional() } }, async (a) => {
+    const r = await bridge.call("take_screenshot", { tabId: a.tabId })
+    return { content: [{ type: "text" as const, text: String(r) }] }
+  })
 
-  server.registerTool(
-    "browser_navigate",
-    { description: "Navigate a tab to a URL", inputSchema: { tabId: z.number(), url: z.string() } },
-    async (args) => {
-      const result = await bridge.call("navigate", { tabId: args.tabId, url: args.url })
-      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] }
-    },
-  )
+  server.registerTool("browser_navigate", { description: "Navigate tab to URL", inputSchema: { tabId: z.number(), url: z.string() } }, async (a) => {
+    const r = await bridge.call("navigate", { tabId: a.tabId, url: a.url })
+    return { content: [{ type: "text" as const, text: JSON.stringify(r, null, 2) }] }
+  })
 
-  server.connect(transport).catch((err) => log(`[mcp] connect error: ${err}`))
+  return server
+}
 
-  return transport
+export async function handleMcpRequest(bridge: Bridge, req: Request): Promise<Response> {
+  const server = createServer(bridge)
+  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined })
+  await server.connect(transport)
+  const response = await transport.handleRequest(req)
+  return response
 }

@@ -1,6 +1,6 @@
 import { Bridge } from "./bridge.js"
 import { onMessage, sendMessage } from "./native-messaging.js"
-import { createMcpServer } from "./mcp-server.js"
+import { handleMcpRequest } from "./mcp-server.js"
 
 const PORT = 19877
 const VERBOSE = process.env.LOG_LEVEL === "debug"
@@ -21,17 +21,14 @@ onMessage((msg) => {
   }
 })
 
-const transport = createMcpServer(bridge)
-
 Bun.serve({
   port: PORT,
   hostname: "127.0.0.1",
   idleTimeout: 0,
-  reusePort: true,
   async fetch(req) {
     const url = new URL(req.url)
     log(`[host] ${req.method} ${url.pathname}`)
-    if (url.pathname.startsWith("/mcp")) return transport.handleRequest(req)
+    if (url.pathname.startsWith("/mcp")) return handleMcpRequest(bridge, req)
     return new Response("ok", { status: 200 })
   },
 })
