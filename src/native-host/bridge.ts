@@ -17,9 +17,11 @@ export class Bridge {
 
   call(tool: string, args: Record<string, unknown>): Promise<unknown> {
     const id = String(++this.requestId)
+    console.error(`[bridge] call ${tool} id=${id} args=${JSON.stringify(args).slice(0, 100)}`)
     const promise = new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id)
+        console.error(`[bridge] timeout ${tool} id=${id}`)
         reject(new Error(`Request ${tool} timed out after ${TIMEOUT}ms`))
       }, TIMEOUT)
       this.pending.set(id, { resolve, reject, timer })
@@ -31,14 +33,24 @@ export class Bridge {
 
   handleResponse(msg: { id: string; result?: unknown; error?: string }) {
     const req = this.pending.get(msg.id)
-    if (!req) return
+    if (!req) {
+      console.error(`[bridge] no pending request for id=${msg.id}`)
+      return
+    }
     this.pending.delete(msg.id)
     clearTimeout(req.timer)
-    if (msg.error) req.reject(new Error(msg.error))
-    else req.resolve(msg.result)
+    if (msg.error) {
+      console.error(`[bridge] response id=${msg.id} error=${msg.error}`)
+      req.reject(new Error(msg.error))
+    } else {
+      const preview = typeof msg.result === "string" ? msg.result.slice(0, 80) : JSON.stringify(msg.result).slice(0, 80)
+      console.error(`[bridge] response id=${msg.id} result=${preview}`)
+      req.resolve(msg.result)
+    }
   }
 
   destroy() {
+    console.error(`[bridge] destroying ${this.pending.size} pending requests`)
     for (const [id, req] of this.pending) {
       clearTimeout(req.timer)
       req.reject(new Error("Bridge destroyed"))

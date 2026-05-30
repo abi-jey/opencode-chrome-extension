@@ -6,35 +6,54 @@
   <title>OpenCode</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; font-size: 13px; color: #e0e0e0; background: #1a1a2e; padding: 12px; }
+    body { font-family: system-ui, monospace; font-size: 12px; color: #e0e0e0; background: #0d1117; padding: 12px; overflow-x: hidden; }
     h2 { font-size: 14px; margin-bottom: 8px; color: #fff; }
     .status { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: #666; }
-    .dot.connected { background: #4caf50; }
-    .section { margin-bottom: 16px; }
-    .section h3 { font-size: 12px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .tab-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: #16213e; border-radius: 4px; margin-bottom: 4px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; flex-shrink: 0; }
+    .dot.connected { background: #3fb950; }
+    .dot.error { background: #f85149; }
+    .section { margin-bottom: 14px; }
+    .section h3 { font-size: 11px; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+    .count { background: #21262d; color: #8b949e; font-size: 10px; padding: 1px 6px; border-radius: 8px; }
+    .tab-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; background: #161b22; border-radius: 4px; margin-bottom: 3px; border: 1px solid #21262d; }
     .tab-item .title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
-    .tab-item .url { font-size: 11px; color: #888; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .toggle { width: 32px; height: 18px; background: #444; border-radius: 9px; position: relative; cursor: pointer; border: none; flex-shrink: 0; }
-    .toggle.on { background: #4caf50; }
-    .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 0.1s; }
-    .toggle.on::after { transform: translateX(14px); }
-    button { padding: 4px 10px; border: 1px solid #444; border-radius: 4px; background: #16213e; color: #e0e0e0; cursor: pointer; font-size: 12px; }
-    button:hover { background: #0f3460; }
-    .refresh { width: 100%; margin-top: 4px; }
+    .tab-item .url { font-size: 10px; color: #8b949e; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .toggle { width: 28px; height: 16px; background: #30363d; border-radius: 8px; position: relative; cursor: pointer; border: none; flex-shrink: 0; }
+    .toggle.on { background: #3fb950; }
+    .toggle::after { content: ''; position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 0.1s; }
+    .toggle.on::after { transform: translateX(12px); }
+    button { padding: 3px 8px; border: 1px solid #30363d; border-radius: 4px; background: #21262d; color: #c9d1d9; cursor: pointer; font-size: 11px; font-family: inherit; }
+    button:hover { background: #30363d; }
+    .btn-row { display: flex; gap: 4px; margin-top: 4px; }
+    .log { margin-top: 12px; max-height: 200px; overflow-y: auto; font-size: 10px; line-height: 1.4; }
+    .log-entry { padding: 2px 4px; border-bottom: 1px solid #161b22; white-space: pre-wrap; word-break: break-all; }
+    .log-entry .ts { color: #484f58; margin-right: 6px; }
+    .log-entry.info { color: #8b949e; }
+    .log-entry.warn { color: #d2991d; }
+    .log-entry.error { color: #f85149; }
+    .log-entry.debug { color: #58a6ff; }
+    .log-entry.tool_in { color: #a371f7; }
+    .log-entry.tool_out { color: #3fb950; }
   </style>
 </head>
 <body>
   <h2>OpenCode Browser</h2>
   <div class="status">
     <span class="dot" id="statusDot"></span>
-    <span id="statusText">Disconnected</span>
+    <span id="statusText">Checking...</span>
   </div>
   <div class="section">
-    <h3>Tabs</h3>
+    <h3>Tabs <span class="count" id="tabCount">0</span></h3>
     <div id="tabList">Loading...</div>
-    <button class="refresh" id="refreshBtn">Refresh Tabs</button>
+    <button id="refreshBtn" style="width:100%;margin-top:4px">Refresh Tabs</button>
+  </div>
+  <div class="section">
+    <h3>Log <span class="count" id="logCount">0</span>
+      <div class="btn-row" style="display:inline-flex;margin-left:auto">
+        <button id="clearLog">Clear</button>
+      </div>
+    </h3>
+    <div class="log" id="log"></div>
   </div>
   <script src="sidebar.js"></script>
 </body>

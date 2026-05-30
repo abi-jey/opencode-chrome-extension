@@ -11,16 +11,24 @@ export function onMessage(cb: (msg: unknown) => void): void {
     while (buffer.length >= expecting) {
       if (expecting === HEADER_SIZE) {
         msgLength = buffer.readUInt32LE(0)
+        if (msgLength > 1024 * 1024) {
+          console.error("[native-msg] oversize message:", msgLength, "bytes")
+          buffer = buffer.subarray(4)
+          expecting = HEADER_SIZE
+          continue
+        }
         expecting += msgLength
         continue
       }
 
       const msgBytes = buffer.subarray(HEADER_SIZE, HEADER_SIZE + msgLength)
-      const message = msgBytes.toString("utf-8")
+      const raw = msgBytes.toString("utf-8")
       try {
-        cb(JSON.parse(message))
+        const message = JSON.parse(raw)
+        console.error("[native-msg] recv:", JSON.stringify(message).slice(0, 200))
+        cb(message)
       } catch (err) {
-        console.error("Failed to parse native message:", err)
+        console.error("[native-msg] parse error:", err, "raw:", raw.slice(0, 100))
       }
 
       buffer = buffer.subarray(HEADER_SIZE + msgLength)
@@ -28,6 +36,9 @@ export function onMessage(cb: (msg: unknown) => void): void {
       msgLength = 0
     }
   })
+
+  process.stdin.on("end", () => console.error("[native-msg] stdin closed"))
+  process.stdin.on("error", (err) => console.error("[native-msg] stdin error:", err))
 }
 
 export function sendMessage(msg: unknown): void {
@@ -36,4 +47,5 @@ export function sendMessage(msg: unknown): void {
   const length = Buffer.alloc(HEADER_SIZE)
   length.writeUInt32LE(encoded.length, 0)
   process.stdout.write(Buffer.concat([length, encoded]))
+  console.error("[native-msg] sent:", json.slice(0, 200))
 }
