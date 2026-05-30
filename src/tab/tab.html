@@ -2,15 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenCode</title>
+  <title>OpenCode Debug</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, monospace; font-size: 13px; color: #e0e0e0; background: #0d1117; padding: 16px; max-width: 800px; margin: 0 auto; }
+    h2 { font-size: 16px; margin-bottom: 12px; color: #fff; }
+    .status { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #555; flex-shrink: 0; }
+    .dot.connected { background: #3fb950; }
+    .dot.error { background: #f85149; }
+    .section { margin-bottom: 18px; }
+    .section h3 { font-size: 12px; color: #8b949e; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .log { background: #161b22; border: 1px solid #21262d; border-radius: 4px; padding: 8px; max-height: 400px; overflow-y: auto; font-size: 11px; line-height: 1.5; }
+    .log-entry { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
+    .log-entry .ts { color: #484f58; margin-right: 8px; }
+    .log-entry.info { color: #8b949e; }
+    .log-entry.warn { color: #d2991d; }
+    .log-entry.error { color: #f85149; }
+    .log-entry.debug { color: #58a6ff; }
+    .log-entry.tool_in { color: #a371f7; }
+    .log-entry.tool_out { color: #3fb950; }
+    button { padding: 4px 12px; border: 1px solid #30363d; border-radius: 4px; background: #21262d; color: #c9d1d9; cursor: pointer; font-size: 12px; font-family: inherit; }
+    button:hover { background: #30363d; }
+    .tabs-grid { display: grid; gap: 4px; }
+    .tab-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: #161b22; border-radius: 4px; border: 1px solid #21262d; }
+    .tab-row .id { color: #484f58; font-size: 11px; min-width: 80px; }
+    .tab-row .title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tab-row .active-badge { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: #1f3a2c; color: #3fb950; flex-shrink: 0; }
+  </style>
 </head>
 <body>
-  <div id="app">
-    <h1>OpenCode</h1>
-    <textarea id="input" placeholder="Send a message to the desktop app..." rows="4" cols="60"></textarea>
-    <button id="send">Send</button>
-    <pre id="output"></pre>
+  <h2>OpenCode Browser Debug</h2>
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="status">Checking...</span>
+  </div>
+  <div class="section">
+    <h3>Tabs</h3>
+    <div class="tabs-grid" id="tabs">Loading...</div>
+  </div>
+  <div class="section">
+    <h3>Log <button id="clear">Clear</button></h3>
+    <div class="log" id="log"></div>
   </div>
   <script src="tab.js"></script>
 </body>

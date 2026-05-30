@@ -198,3 +198,6 @@ chrome.runtime.onMessage.addListener((msg) => {
 chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL("tab/tab.html") })
 })
+
+// Auto-connect to native host on startup (triggers Chrome to launch the native host binary)
+connectNative()
