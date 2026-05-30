@@ -113,3 +113,5 @@ function esc(s: string): string {
   div.textContent = s
   return div.innerHTML
 }
+
+export {}

@@ -71,3 +71,5 @@ function esc(s: string) {
   d.textContent = s
   return d.innerHTML
 }
+
+export {}

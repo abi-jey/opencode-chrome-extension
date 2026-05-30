@@ -3,6 +3,9 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { z } from "zod/v4"
 import type { Bridge } from "./bridge.js"
 
+const VERBOSE = process.env.LOG_LEVEL === "debug"
+const log = (msg: string) => { if (VERBOSE) console.error(msg) }
+
 export function createMcpServer(bridge: Bridge): {
   server: McpServer
   transport: WebStandardStreamableHTTPServerTransport
@@ -14,18 +17,13 @@ export function createMcpServer(bridge: Bridge): {
 
   server.registerTool(
     "browser_list_tabs",
-    {
-      description: "List all open browser tabs with their IDs, URLs, and titles",
-      inputSchema: {},
-    },
+    { description: "List all open browser tabs with their IDs, URLs, and titles", inputSchema: {} },
     async () => {
-      console.error("[mcp] list_tabs called")
+      log("[mcp] list_tabs called")
       const start = Date.now()
       const result = await bridge.call("list_tabs", {})
-      console.error(`[mcp] list_tabs done in ${Date.now() - start}ms, ${Array.isArray(result) ? result.length : 0} tabs`)
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
-      }
+      log(`[mcp] list_tabs done in ${Date.now() - start}ms, ${Array.isArray(result) ? result.length : 0} tabs`)
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] }
     },
   )
 
@@ -36,14 +34,12 @@ export function createMcpServer(bridge: Bridge): {
       inputSchema: { tabId: z.number().describe("The ID of the tab to read HTML from") },
     },
     async (args) => {
-      console.error(`[mcp] read_page_html tabId=${args.tabId}`)
+      log(`[mcp] read_page_html tabId=${args.tabId}`)
       const start = Date.now()
       const result = await bridge.call("read_page_html", { tabId: args.tabId })
       const size = typeof result === "string" ? result.length : 0
-      console.error(`[mcp] read_page_html done in ${Date.now() - start}ms, ${size} chars`)
-      return {
-        content: [{ type: "text" as const, text: typeof result === "string" ? result : JSON.stringify(result) }],
-      }
+      log(`[mcp] read_page_html done in ${Date.now() - start}ms, ${size} chars`)
+      return { content: [{ type: "text" as const, text: typeof result === "string" ? result : JSON.stringify(result) }] }
     },
   )
 
@@ -57,13 +53,11 @@ export function createMcpServer(bridge: Bridge): {
       },
     },
     async (args) => {
-      console.error(`[mcp] execute_js tabId=${args.tabId} code=${args.code.slice(0, 80)}`)
+      log(`[mcp] execute_js tabId=${args.tabId} code=${args.code.slice(0, 80)}`)
       const start = Date.now()
       const result = await bridge.call("execute_js", { tabId: args.tabId, code: args.code })
-      console.error(`[mcp] execute_js done in ${Date.now() - start}ms`)
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
-      }
+      log(`[mcp] execute_js done in ${Date.now() - start}ms`)
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] }
     },
   )
 
@@ -76,13 +70,11 @@ export function createMcpServer(bridge: Bridge): {
       },
     },
     async (args) => {
-      console.error(`[mcp] take_screenshot tabId=${args.tabId ?? "active"}`)
+      log(`[mcp] take_screenshot tabId=${args.tabId ?? "active"}`)
       const start = Date.now()
       const result = await bridge.call("take_screenshot", { tabId: args.tabId })
-      console.error(`[mcp] take_screenshot done in ${Date.now() - start}ms`)
-      return {
-        content: [{ type: "text" as const, text: String(result) }],
-      }
+      log(`[mcp] take_screenshot done in ${Date.now() - start}ms`)
+      return { content: [{ type: "text" as const, text: String(result) }] }
     },
   )
 
@@ -96,13 +88,11 @@ export function createMcpServer(bridge: Bridge): {
       },
     },
     async (args) => {
-      console.error(`[mcp] navigate tabId=${args.tabId} url=${args.url}`)
+      log(`[mcp] navigate tabId=${args.tabId} url=${args.url}`)
       const start = Date.now()
       const result = await bridge.call("navigate", { tabId: args.tabId, url: args.url })
-      console.error(`[mcp] navigate done in ${Date.now() - start}ms`)
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
-      }
+      log(`[mcp] navigate done in ${Date.now() - start}ms`)
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] }
     },
   )
 

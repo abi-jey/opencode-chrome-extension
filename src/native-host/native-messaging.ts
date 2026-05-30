@@ -1,4 +1,6 @@
 const HEADER_SIZE = 4
+const VERBOSE = process.env.LOG_LEVEL === "debug"
+const log = (msg: string) => { if (VERBOSE) console.error(msg) }
 
 export function onMessage(cb: (msg: unknown) => void): void {
   let buffer = Buffer.alloc(0)
@@ -25,7 +27,7 @@ export function onMessage(cb: (msg: unknown) => void): void {
       const raw = msgBytes.toString("utf-8")
       try {
         const message = JSON.parse(raw)
-        console.error("[native-msg] recv:", JSON.stringify(message).slice(0, 200))
+        log(`[native-msg] recv: ${JSON.stringify(message).slice(0, 200)}`)
         cb(message)
       } catch (err) {
         console.error("[native-msg] parse error:", err, "raw:", raw.slice(0, 100))
@@ -47,5 +49,5 @@ export function sendMessage(msg: unknown): void {
   const length = Buffer.alloc(HEADER_SIZE)
   length.writeUInt32LE(encoded.length, 0)
   process.stdout.write(Buffer.concat([length, encoded]))
-  console.error("[native-msg] sent:", json.slice(0, 200))
+  log(`[native-msg] sent: ${json.slice(0, 200)}`)
 }
