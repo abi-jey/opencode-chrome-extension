@@ -43,7 +43,7 @@ Bun.serve({
     if (url.pathname.startsWith("/mcp")) {
       return transport.handleRequest(req)
     }
-    return new Response("opencode-native-host", { status: 200 })
+    return new Response("browser-companion-host", { status: 200 })
   },
 })
 

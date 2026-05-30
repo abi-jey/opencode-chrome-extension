@@ -5,30 +5,28 @@ BIN_DIR="${HOME}/.local/bin"
 CHROME_DIR="${HOME}/.config/google-chrome/NativeMessagingHosts"
 CHROMIUM_DIR="${HOME}/.config/chromium/NativeMessagingHosts"
 
-HOST_NAME="com.opencode.app"
-BIN_PATH="${BIN_DIR}/opencode-native-host"
+HOST_NAME="com.github.abijey.browser-companion"
+BIN_PATH="${BIN_DIR}/browser-companion-host"
 MANIFEST_PATH="${CHROME_DIR}/${HOST_NAME}.json"
 
-echo "=== OpenCode Browser Companion Installer ==="
+echo "=== Browser Companion Installer ==="
 echo
 
-# Install binary
 mkdir -p "${BIN_DIR}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if [ -f "${SCRIPT_DIR}/bin/opencode-native-host" ]; then
+if [ -f "${SCRIPT_DIR}/bin/browser-companion-host" ]; then
+  cp "${SCRIPT_DIR}/bin/browser-companion-host" "${BIN_PATH}"
+  chmod +x "${BIN_PATH}"
+  echo "[OK] Installed binary: ${BIN_PATH}"
+elif [ -f "${SCRIPT_DIR}/bin/opencode-native-host" ]; then
   cp "${SCRIPT_DIR}/bin/opencode-native-host" "${BIN_PATH}"
   chmod +x "${BIN_PATH}"
-  echo "[OK] Installed binary: ${BIN_PATH}"
-elif [ -f "${SCRIPT_DIR}/opencode-native-host" ]; then
-  cp "${SCRIPT_DIR}/opencode-native-host" "${BIN_PATH}"
-  chmod +x "${BIN_PATH}"
-  echo "[OK] Installed binary: ${BIN_PATH}"
+  echo "[OK] Installed binary (legacy name): ${BIN_PATH}"
 else
   echo "[SKIP] Binary not found. Build with: bun run build"
 fi
 
-# Register native host manifest
 EXT_ID="${1:-}"
 if [ -z "${EXT_ID}" ]; then
   echo
@@ -44,7 +42,7 @@ mkdir -p "${CHROME_DIR}"
 cat > "${MANIFEST_PATH}" <<JSON
 {
   "name": "${HOST_NAME}",
-  "description": "OpenCode browser companion native messaging host",
+  "description": "Browser companion native messaging host for MCP-compatible AI tools",
   "path": "${BIN_PATH}",
   "type": "stdio",
   "allowed_origins": ["chrome-extension://${EXT_ID}/"]
@@ -52,19 +50,21 @@ cat > "${MANIFEST_PATH}" <<JSON
 JSON
 echo "[OK] Registered manifest: ${MANIFEST_PATH}"
 
-# Also try Chromium
 if [ -d "${HOME}/.config/chromium" ]; then
   mkdir -p "${CHROMIUM_DIR}"
   cp "${MANIFEST_PATH}" "${CHROMIUM_DIR}/"
   echo "[OK] Registered Chromium manifest: ${CHROMIUM_DIR}/${HOST_NAME}.json"
 fi
 
+# Remove old legacy manifest
+rm -f "${CHROME_DIR}/com.opencode.app.json" "${CHROMIUM_DIR}/com.opencode.app.json" 2>/dev/null || true
+
 echo
 echo "=== Done ==="
 echo
 echo "  1. Restart Chrome"
 echo "  2. Click the extension icon to connect"
-echo "  3. Add to your opencode.json:"
+echo "  3. Add to your MCP-compatible tool config:"
 echo
 echo '     {'
 echo '       "mcp": {'

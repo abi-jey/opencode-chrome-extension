@@ -1,4 +1,4 @@
-const NATIVE_HOST = "com.opencode.app"
+const NATIVE_HOST = "com.github.abijey.browser-companion"
 
 interface BridgeMessage {
   id: string

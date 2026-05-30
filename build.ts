@@ -33,5 +33,5 @@ if (!hostResult.success) {
 console.log("Native host bundled to", binOutdir)
 
 // Compile to standalone binary
-await $`bun build --compile src/native-host/index.ts --outfile bin/opencode-native-host`
-console.log("Native host binary compiled to bin/opencode-native-host")
+await $`bun build --compile src/native-host/index.ts --outfile bin/browser-companion-host`
+console.log("Native host binary compiled to bin/browser-companion-host")

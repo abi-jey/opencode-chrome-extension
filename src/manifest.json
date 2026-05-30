@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "OpenCode Companion",
+  "name": "Browser Companion",
   "version": "0.1.0",
-  "description": "Communicates with the OpenCode desktop application via native messaging.",
+  "description": "Exposes browser tabs and DOM as tools for MCP-compatible AI tools via native messaging.",
   "permissions": ["nativeMessaging", "tabs", "scripting", "sidePanel"],
   "host_permissions": ["<all_urls>"],
   "background": {
@@ -16,7 +16,7 @@
     }
   ],
   "action": {
-    "default_title": "Open OpenCode Sidebar"
+    "default_title": "Open Browser Companion"
   },
   "side_panel": {
     "default_path": "sidebar/sidebar.html"
