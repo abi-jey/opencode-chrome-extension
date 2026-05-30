@@ -199,7 +199,8 @@ chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL("tab/tab.html") })
 })
 
-// Don't auto-connect on startup — let the debug page trigger it
-log("info", "sw", `service worker ready v0.2.0 (fe44623), host=${NATIVE_HOST}`)
+// Auto-connect on startup
+log("info", "sw", `starting v0.2.0 (fe44623), host=${NATIVE_HOST}`)
+connectNative()
 
 export {}

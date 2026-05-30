@@ -45,7 +45,7 @@ Bun.serve({
     }
     return new Response("browser_companion_host", { status: 200 })
   },
-})
+} as any)
 
 always(`[host] MCP server on http://127.0.0.1:${PORT}/mcp`)
 

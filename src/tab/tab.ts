@@ -13,9 +13,8 @@ clearBtn.addEventListener("click", () => { logEl.innerHTML = ""; logCount = 0 })
 
 forceBtn.addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "force_reconnect" }, (resp) => {
-    append("info", "ui", `Force reconnect: ${resp?.ok ? "sent" : "SW did not respond"}`)
+    append(resp?.ok ? "info" : "warn", "ui", `Reconnect: ${resp?.ok ? "connected" : "failed"}`)
   })
-  setTimeout(checkStatus, 2000)
 })
 
 fetch(chrome.runtime.getURL("build-info.json"))
