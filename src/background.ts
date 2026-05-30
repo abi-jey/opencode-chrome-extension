@@ -13,10 +13,10 @@ interface BridgeResponse {
 }
 
 let nativePort: chrome.runtime.Port | null = null
+let lastError = ""
 
 function connectNative(): chrome.runtime.Port {
   if (nativePort) return nativePort
-  console.log("Connecting to native host:", NATIVE_HOST)
   nativePort = chrome.runtime.connectNative(NATIVE_HOST)
   nativePort.onMessage.addListener((msg) => {
     if (msg && typeof msg === "object" && "id" in msg && "tool" in msg) {
@@ -24,9 +24,11 @@ function connectNative(): chrome.runtime.Port {
     }
   })
   nativePort.onDisconnect.addListener(() => {
-    console.error("Native host disconnected:", chrome.runtime.lastError?.message)
+    lastError = chrome.runtime.lastError?.message ?? "Unknown disconnect"
     nativePort = null
+    broadcast({ type: "disconnected", error: lastError })
   })
+  broadcast({ type: "connected" })
   return nativePort
 }
 
@@ -34,6 +36,21 @@ function sendToNative(msg: unknown) {
   const port = connectNative()
   port.postMessage(msg)
 }
+
+function broadcast(msg: unknown) {
+  chrome.runtime.sendMessage(msg).catch(() => {})
+}
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg && typeof msg === "object" && "type" in msg && msg.type === "get_status") {
+    if (nativePort) return { connected: true }
+    return { connected: false, error: lastError }
+  }
+  if (msg && typeof msg === "object" && "id" in msg && "tool" in msg) {
+    handleBridgeMessage(msg as BridgeMessage)
+    return true
+  }
+})
 
 function handleBridgeMessage(msg: BridgeMessage) {
   switch (msg.tool) {
@@ -53,17 +70,13 @@ function handleBridgeMessage(msg: BridgeMessage) {
     case "take_screenshot": {
       const windowId = msg.args.tabId != null ? Number(msg.args.tabId) : undefined
       if (windowId != null) {
-        chrome.tabs.captureVisibleTab(windowId, { format: "png" }, handleScreenshot)
+        chrome.tabs.captureVisibleTab(windowId, { format: "png" }, (dataUrl) =>
+          handleScreenshot(dataUrl, msg.id),
+        )
       } else {
-        chrome.tabs.captureVisibleTab({ format: "png" }, handleScreenshot)
-      }
-      function handleScreenshot(dataUrl: string) {
-        if (chrome.runtime.lastError) {
-          sendToNative({ id: msg.id, error: chrome.runtime.lastError.message })
-          return
-        }
-        const base64 = dataUrl.replace(/^data:image\/png;base64,/, "")
-        sendToNative({ id: msg.id, result: { format: "png", data: base64 } })
+        chrome.tabs.captureVisibleTab({ format: "png" }, (dataUrl) =>
+          handleScreenshot(dataUrl, msg.id),
+        )
       }
       break
     }
@@ -94,7 +107,15 @@ function handleBridgeMessage(msg: BridgeMessage) {
   }
 }
 
-// Action click opens the extension tab
+function handleScreenshot(dataUrl: string, id: string) {
+  if (chrome.runtime.lastError) {
+    sendToNative({ id, error: chrome.runtime.lastError.message })
+    return
+  }
+  const base64 = dataUrl.replace(/^data:image\/png;base64,/, "")
+  sendToNative({ id, result: { format: "png", data: base64 } })
+}
+
 chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL("tab/tab.html") })
 })
