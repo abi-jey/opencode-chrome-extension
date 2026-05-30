@@ -4,6 +4,7 @@ set -euo pipefail
 BIN_DIR="${HOME}/.local/bin"
 CHROME_DIR="${HOME}/.config/google-chrome/NativeMessagingHosts"
 CHROMIUM_DIR="${HOME}/.config/chromium/NativeMessagingHosts"
+SNAP_CHROMIUM_DIR="${HOME}/snap/chromium/common/chromium/NativeMessagingHosts"
 
 HOST_NAME="com.github.abijey.browser_companion"
 BIN_PATH="${BIN_DIR}/browser_companion_host"
@@ -53,10 +54,10 @@ cat > "${MANIFEST_PATH}" <<JSON
 JSON
 echo "[OK] Registered manifest: ${MANIFEST_PATH}"
 
-if [ -d "${HOME}/.config/chromium" ]; then
-  mkdir -p "${CHROMIUM_DIR}"
-  cp "${MANIFEST_PATH}" "${CHROMIUM_DIR}/"
-  echo "[OK] Registered Chromium manifest: ${CHROMIUM_DIR}/${HOST_NAME}.json"
+if [ -d "${HOME}/snap/chromium" ]; then
+  mkdir -p "${SNAP_CHROMIUM_DIR}"
+  cp "${MANIFEST_PATH}" "${SNAP_CHROMIUM_DIR}/"
+  echo "[OK] Registered Snap Chromium manifest: ${SNAP_CHROMIUM_DIR}/${HOST_NAME}.json"
 fi
 
 # Remove old legacy manifest
