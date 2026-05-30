@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Browser Companion",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "version_name": "0.2.0",
   "description": "Exposes browser tabs and DOM as tools for MCP-compatible AI tools via native messaging.",
+  "homepage_url": "https://github.com/abi-jey/opencode-chrome-extension",
+  "minimum_chrome_version": "114",
   "permissions": ["nativeMessaging", "tabs", "scripting", "sidePanel"],
   "host_permissions": ["<all_urls>"],
   "background": {

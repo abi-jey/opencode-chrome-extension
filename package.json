@@ -1,6 +1,7 @@
 {
-  "name": "opencode-chrome-extension",
-  "description": "Chrome extension companion for opencode desktop app",
+  "name": "browser-companion",
+  "version": "0.2.0",
+  "description": "Chrome extension companion — exposes browser tabs and DOM as MCP tools",
   "private": true,
   "type": "module",
   "scripts": {
