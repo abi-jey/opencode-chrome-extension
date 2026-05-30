@@ -107,7 +107,7 @@ export function createMcpServer(bridge: Bridge): {
   )
 
   const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
+    sessionIdGenerator: () => crypto.randomUUID(),
   })
 
   return { server, transport }

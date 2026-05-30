@@ -21,6 +21,10 @@ onMessage((msg) => {
 
 const { server, transport } = createMcpServer(bridge)
 
+server.connect(transport).catch((err) => {
+  console.error("[host] MCP server connect error:", err)
+})
+
 Bun.serve({
   port: PORT,
   hostname: "127.0.0.1",
@@ -35,10 +39,6 @@ Bun.serve({
 })
 
 console.error(`[host] MCP server listening on http://127.0.0.1:${PORT}/mcp`)
-
-server.connect(transport).catch((err) => {
-  console.error("[host] MCP server connect error:", err)
-})
 
 process.on("SIGTERM", shutdown)
 process.on("SIGINT", shutdown)
