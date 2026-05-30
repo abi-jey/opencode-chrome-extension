@@ -3,11 +3,22 @@
   "name": "OpenCode Companion",
   "version": "0.1.0",
   "description": "Communicates with the OpenCode desktop application via native messaging.",
-  "permissions": ["nativeMessaging", "tabs"],
+  "permissions": ["nativeMessaging", "tabs", "scripting", "sidePanel"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
-    "default_title": "Open OpenCode Tab"
+    "default_title": "Open OpenCode Sidebar"
+  },
+  "side_panel": {
+    "default_path": "sidebar/sidebar.html"
   }
 }
